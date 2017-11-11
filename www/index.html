@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+	
+		<link rel="stylesheet" href="css/bootstrap.min.css">	
+		
+		<script src="js/jquery-3.2.1.min.js"></script>
+		<script src="js/popper.min.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+		<script src="../platforms/browser/www/cordova.js"></script>
+
+		<script type="text/javascript">
+			$(document).ajaxStart(function(){
+				$('#modalLoading').modal('show');
+			});
+			$(document).ajaxStop(function(){
+				$('#modalLoading').modal('hide');
+			});
+		
+			jQuery(document).ready(function(){
+				listarCards();
+				$("#listar").click(function(e){
+					e.preventDefault();
+					
+					listarCards();
+				});
+				
+				//Cadastrar
+				$('#btn-cadastrar-card').click(function(e){
+					e.preventDefault();
+
+					var url_imagem = $('#url_img').val().trim();
+					var descricao = $('#descricao').val().trim();
+					
+					
+					if("" === url_imagem){
+						alert('Insira a URL da imagem.');
+					} else if("" === descricao){
+						alert('Insira a descrição.');
+					} else {
+						$.ajax({
+							url: 'http://andrecosta.info/cards/',
+							method: 'POST',
+							type: 'json',
+							data: 'url_imagem='+url_imagem+'&descricao='+descricao,
+							success: function(result){
+								
+							}
+						});
+					}		
+					return false;
+				});
+				
+				//Curtir
+				$('#lista-cards').delegate('.btn-card-like', 'click', function(e){
+					e.preventDefault();
+					
+					$.ajax({
+						url: 'http://andrecosta.info/cards/like/',
+						method: 'POST',
+						type: 'json',
+						data: 'id='+$(this).data().id_card,
+						success: function(result){
+							if(result.success){
+								listarCards();
+							}
+						},
+						error: function(){
+							console.error('Erro ao tentar curtir.');
+							alert('Erro ao tentar curtir.');
+						}
+					});
+				});
+
+				//Deletar
+				$('#lista-cards').delegate('.btn-card-deletar', 'click', function(e){
+					e.preventDefault();
+				
+					var r = confirm("Excluir card?");
+					if (r == true) {
+						$.ajax({
+							url: 'http://andrecosta.info/cards/',
+							method: 'DELETE',
+							type: 'json',
+							data: 'id='+$(this).data().id_card,
+							success: function(result){
+								if(result.success){
+									listarCards();
+								}
+							},
+							error: function(){
+								console.error('Erro ao tentar deletar card.');
+								alert('Erro ao tentar deletar card.');
+							}
+						});
+					}
+					return;
+				});
+			});
+			
+			function listarCards(){
+				$('div[id*=card-]').fadeOut('fast');
+				$.ajax({
+					url: 'http://andrecosta.info/cards/',
+					method: 'GET',
+					type: 'json',
+					success: function(result){
+						if(result.success){
+							if(result.data.length > 0){
+								
+								$.each(result.data, function(i,c){
+									var card_clone = $('#card-modelo').clone();
+									card_clone.find('.card-img-top').attr('src',c.url_imagem);
+									card_clone.find('.card-title').html('Card '+c.id);
+									card_clone.find('.card-text').html(c.descricao);
+									card_clone.find('.card-likes').html(c.likes+' likes');
+									card_clone.attr('id','card-'+c.id);
+									card_clone.find('.btn-card-like').data('id_card', c.id);
+									card_clone.find('.btn-card-deletar').data('id_card', c.id);
+									$('#lista-cards').append(card_clone);
+									card_clone.show('fast');								
+								})
+							}
+						}
+					}
+				});
+			}
+
+		</script>
+	</head>
+	
+	<body>
+		<!-- Navigation -->
+		<div class="container">
+			<nav class="navbar navbar-expand-lg navbar-light bg-light">
+				<a class="navbar-brand" id="listar" href="#"></span>Listar</a>
+				<a class="navbar-brand" id="cadastrar" href="#" data-toggle="modal" data-target="#cadastrarModal">Cadastrar</a>
+			</nav>
+			
+			<div class="row col-md-12" id="lista-cards">
+			
+				<div class="col-md-3" id="card-modelo" style="display:none;margin-top:15px">
+					<div class="card">
+						<img class="card-img-top" src="" alt="" style="height:150px;">
+						<div class="card-body">
+							<h4 class="card-title"></h4>
+							<p class="card-text"></p>
+							<p class="text-info"><strong class="card-likes"></strong></p>
+							<a href="#" class="btn btn-danger btn-card-deletar">Deletar</a>
+							<a href="#" class="btn btn-primary btn-card-like">Curtir</a>
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+		
+		
+		<!-- Modal -->
+
+		<!-- Modal -->
+		<div class="modal fade" id="cadastrarModal" tabindex="-1" role="dialog" aria-labelledby="cadastrarModalLabel" aria-hidden="true">
+		  <div class="modal-dialog" role="document">
+			<div class="modal-content">
+			
+			  <div class="modal-header">
+				<h5 class="modal-title" id="cadastrarModalLabel">Cadastrar Card</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+				  <span aria-hidden="true">&times;</span>
+				</button>				
+			  </div>
+			  
+			  <div class="modal-body">
+				<form id="form-cadastro-card">
+				  <div class="form-group">
+					<label for="url_img">URL da imagem</label>
+					<input type="text" class="form-control" id="url_img" aria-describedby="Url da imagem" placeholder="URL da imagem" maxlength="255">
+				  </div>
+				  <div class="form-group">
+					<label for="descricao">Descrição</label>
+					<textarea class="form-control" id="descricao" placeholder="Descrição" maxlength="100"></textarea>
+				  </div>
+				</form>
+			  </div>
+			  
+			  <div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+				<button type="button" id="btn-cadastrar-card" class="btn btn-primary">Salvar</button>
+			  </div>
+			  
+			</div>
+		  </div>
+		</div>
+		
+		<!-- Modal loading -->
+		<div class="modal fade" id="modalLoading" tabindex="-1" role="dialog" aria-hidden="true">
+		  <div class="modal-dialog" role="document">
+			<div class="modal-content" style="background-color:transparent;">
+			
+				<div class="modal-body">
+					<img src="img/loading.gif">
+				</div>
+			  
+			</div>
+		  </div>
+		</div>
+	</body>
+</html>
